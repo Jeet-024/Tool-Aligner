@@ -11,8 +11,14 @@ python run_aligner.py --seq1 ATGCTAG --seq2 ATGATAG --algorithm needleman-wunsch
 ```
 
 Outputs:
-- `output/alignment.txt` — raw alignment and scores
-- `output/dotplot.png` — dot-plot image
+- `output/alignment.txt` — raw alignment and scores ->
+```
+  cat alignment.txt
+```
+- `output/dotplot.png` — dot-plot image ->
+```
+  eog dotplot.png
+```
 
 Dependencies (library required): "numpy" and "matplotlib"
 Other dependencies (system requirements): WSL (Ubuntu) and Python 3.13 and above.
