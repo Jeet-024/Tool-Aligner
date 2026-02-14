@@ -1,3 +1,4 @@
+#Needleman-Wunsch and Smith-Waterman algorithm
 def _init_matrix(rows, cols, fill=0):
     return [[fill] * cols for _ in range(rows)]
 
@@ -127,3 +128,4 @@ def smith_waterman(s1, s2, match=2, mismatch=-1, gap=-1):
         'alignment_length': aln_len,
         'identity_percent': identity,
     }
+
