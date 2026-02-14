@@ -1,3 +1,6 @@
+#Source_code for Tool-Aligner 
+#Author: Manojit Mazumder  Date: 14.02.2026
+
 import argparse
 import os
 from aligner.algorithms import needleman_wunsch, smith_waterman
@@ -61,3 +64,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
