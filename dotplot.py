@@ -1,3 +1,4 @@
+#Dotplot creating module
 import matplotlib.pyplot as plt
 
 
@@ -21,3 +22,4 @@ def save_dotplot(s1, s2, filepath, dot_color='black', figsize=(6, 6)):
     plt.tight_layout()
     plt.savefig(filepath, dpi=150)
     plt.close()
+
