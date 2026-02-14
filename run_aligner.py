@@ -3,9 +3,9 @@
 
 import argparse
 import os
-from aligner.algorithms import needleman_wunsch, smith_waterman
-from aligner.dotplot import save_dotplot
-from aligner.io import parse_fasta
+from aligner.algorithms import needleman_wunsch, smith_waterman #make sure to change the name of the argument before running the tool ex: change 'aligner' to 'your_desired_directory_name'
+from aligner.dotplot import save_dotplot #make sure to change the name of the argument before running the tool ex: change 'aligner' to 'your_desired_directory_name'
+from aligner.io import parse_fasta #make sure to change the name of the argument before running the tool ex: change 'aligner' to 'your_desired_directory_name'
 
 
 def write_alignment(outpath, result, seq1, seq2, algorithm):
@@ -64,4 +64,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
