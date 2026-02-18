@@ -7,7 +7,10 @@ Simple command-line tool to align DNA/RNA sequences using Needleman-Wunsch (glob
 Usage example:
 
 ```
-python run_aligner.py --seq1 ATGCTAG --seq2 ATGATAG --algorithm needleman-wunsch --outdir output
+python3 run_aligner.py --seq1 ATGCTAG --seq2 ATGATAG --algorithm needleman-wunsch/ smith-waterman --outdir output
+```
+```
+python3 run_aligner.py --file1 example_file.fasta --file2 example_file.fasta --algorithm needleman-wunsch/ smith-waterman --outdir output
 ```
 
 Outputs:
