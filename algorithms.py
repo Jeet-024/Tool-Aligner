@@ -1,131 +1,215 @@
 #Needleman-Wunsch and Smith-Waterman algorithm
-def _init_matrix(rows, cols, fill=0):
-    return [[fill] * cols for _ in range(rows)]
+def _score(a, b, match, mismatch, sub_matrix=None):
+    """Return substitution score."""
+    if sub_matrix:
+        return sub_matrix.get((a, b), sub_matrix.get((b, a), mismatch))
+    return match if a == b else mismatch
 
 
-def needleman_wunsch(s1, s2, match=1, mismatch=-1, gap=-1):
-    n, m = len(s1), len(s2)
-    dp = _init_matrix(n + 1, m + 1)
-    bt = _init_matrix(n + 1, m + 1)
+def _calculate_identity(align1, align2):
+    """Identity excluding gap-only columns."""
+    matches = 0
+    comparable = 0
 
-    for i in range(1, n + 1):
-        dp[i][0] = dp[i - 1][0] + gap
-        bt[i][0] = 'U'
-    for j in range(1, m + 1):
-        dp[0][j] = dp[0][j - 1] + gap
-        bt[0][j] = 'L'
+    for a, b in zip(align1, align2):
+        if a != '-' and b != '-':
+            comparable += 1
+            if a == b:
+                matches += 1
 
-    for i in range(1, n + 1):
-        for j in range(1, m + 1):
-            score_diag = dp[i - 1][j - 1] + (match if s1[i - 1] == s2[j - 1] else mismatch)
-            score_up = dp[i - 1][j] + gap
-            score_left = dp[i][j - 1] + gap
-            best = max(score_diag, score_up, score_left)
-            dp[i][j] = best
-            if best == score_diag:
-                bt[i][j] = 'D'
-            elif best == score_up:
-                bt[i][j] = 'U'
+    identity = (matches / comparable * 100) if comparable > 0 else 0
+    return matches, len(align1), identity
+
+
+# =========================
+# Needleman–Wunsch (Affine)
+# =========================
+
+def needleman_wunsch_affine(
+    s1,
+    s2,
+    match=2,
+    mismatch=-1,
+    gap_open=-2,
+    gap_extend=-1,
+    sub_matrix=None
+):
+    """
+    Global alignment with affine gap penalty.
+    """
+
+    m, n = len(s1), len(s2)
+
+    # Three matrices
+    M = [[0]*(n+1) for _ in range(m+1)]  # match/mismatch
+    X = [[float('-inf')]*(n+1) for _ in range(m+1)]  # gap in s2
+    Y = [[float('-inf')]*(n+1) for _ in range(m+1)]  # gap in s1
+
+    trace = [[None]*(n+1) for _ in range(m+1)]
+
+    # Initialization
+    for i in range(1, m+1):
+        X[i][0] = gap_open + (i-1)*gap_extend
+        M[i][0] = X[i][0]
+
+    for j in range(1, n+1):
+        Y[0][j] = gap_open + (j-1)*gap_extend
+        M[0][j] = Y[0][j]
+
+    # Fill matrices
+    for i in range(1, m+1):
+        for j in range(1, n+1):
+
+            score_sub = _score(s1[i-1], s2[j-1], match, mismatch, sub_matrix)
+
+            X[i][j] = max(
+                M[i-1][j] + gap_open,
+                X[i-1][j] + gap_extend
+            )
+
+            Y[i][j] = max(
+                M[i][j-1] + gap_open,
+                Y[i][j-1] + gap_extend
+            )
+
+            M[i][j] = max(
+                M[i-1][j-1] + score_sub,
+                X[i][j],
+                Y[i][j]
+            )
+
+            if M[i][j] == M[i-1][j-1] + score_sub:
+                trace[i][j] = 'D'
+            elif M[i][j] == X[i][j]:
+                trace[i][j] = 'U'
             else:
-                bt[i][j] = 'L'
+                trace[i][j] = 'L'
 
     # Traceback
-    i, j = n, m
-    a1, a2 = [], []
-    matches = 0
+    align1, align2 = "", ""
+    i, j = m, n
+
     while i > 0 or j > 0:
-        move = bt[i][j]
-        if move == 'D':
-            a1.append(s1[i - 1])
-            a2.append(s2[j - 1])
-            if s1[i - 1] == s2[j - 1]:
-                matches += 1
+        direction = trace[i][j]
+        if direction == 'D':
+            align1 = s1[i-1] + align1
+            align2 = s2[j-1] + align2
             i -= 1
             j -= 1
-        elif move == 'U':
-            a1.append(s1[i - 1])
-            a2.append('-')
+        elif direction == 'U':
+            align1 = s1[i-1] + align1
+            align2 = '-' + align2
             i -= 1
+        elif direction == 'L':
+            align1 = '-' + align1
+            align2 = s2[j-1] + align2
+            j -= 1
         else:
-            a1.append('-')
-            a2.append(s2[j - 1])
-            j -= 1
+            break
 
-    aln1 = ''.join(reversed(a1))
-    aln2 = ''.join(reversed(a2))
-    aln_len = len(aln1)
-    identity = matches / aln_len * 100 if aln_len > 0 else 0.0
+    matches, align_len, identity = _calculate_identity(align1, align2)
 
     return {
-        'score': dp[n][m],
-        'alignment1': aln1,
-        'alignment2': aln2,
-        'matches': matches,
-        'alignment_length': aln_len,
-        'identity_percent': identity,
+        "score": M[m][n],
+        "alignment1": align1,
+        "alignment2": align2,
+        "matches": matches,
+        "alignment_length": align_len,
+        "identity_percent": identity
     }
 
 
-def smith_waterman(s1, s2, match=2, mismatch=-1, gap=-1):
-    n, m = len(s1), len(s2)
-    dp = _init_matrix(n + 1, m + 1, 0)
-    bt = _init_matrix(n + 1, m + 1, None)
+# =========================
+# Smith–Waterman (Affine)
+# =========================
 
-    max_i = max_j = 0
+def smith_waterman_affine(
+    s1,
+    s2,
+    match=2,
+    mismatch=-1,
+    gap_open=-2,
+    gap_extend=-1,
+    sub_matrix=None
+):
+    """
+    Local alignment with affine gap penalty.
+    """
+
+    m, n = len(s1), len(s2)
+
+    M = [[0]*(n+1) for _ in range(m+1)]
+    X = [[0]*(n+1) for _ in range(m+1)]
+    Y = [[0]*(n+1) for _ in range(m+1)]
+
+    trace = [[None]*(n+1) for _ in range(m+1)]
+
     max_score = 0
-    for i in range(1, n + 1):
-        for j in range(1, m + 1):
-            score_diag = dp[i - 1][j - 1] + (match if s1[i - 1] == s2[j - 1] else mismatch)
-            score_up = dp[i - 1][j] + gap
-            score_left = dp[i][j - 1] + gap
-            best = max(0, score_diag, score_up, score_left)
-            dp[i][j] = best
-            if best == 0:
-                bt[i][j] = None
-            elif best == score_diag:
-                bt[i][j] = 'D'
-            elif best == score_up:
-                bt[i][j] = 'U'
+    max_pos = (0, 0)
+
+    for i in range(1, m+1):
+        for j in range(1, n+1):
+
+            score_sub = _score(s1[i-1], s2[j-1], match, mismatch, sub_matrix)
+
+            X[i][j] = max(
+                M[i-1][j] + gap_open,
+                X[i-1][j] + gap_extend
+            )
+
+            Y[i][j] = max(
+                M[i][j-1] + gap_open,
+                Y[i][j-1] + gap_extend
+            )
+
+            M[i][j] = max(
+                0,
+                M[i-1][j-1] + score_sub,
+                X[i][j],
+                Y[i][j]
+            )
+
+            if M[i][j] == 0:
+                trace[i][j] = 'S'
+            elif M[i][j] == M[i-1][j-1] + score_sub:
+                trace[i][j] = 'D'
+            elif M[i][j] == X[i][j]:
+                trace[i][j] = 'U'
             else:
-                bt[i][j] = 'L'
+                trace[i][j] = 'L'
 
-            if best > max_score:
-                max_score = best
-                max_i, max_j = i, j
+            if M[i][j] > max_score:
+                max_score = M[i][j]
+                max_pos = (i, j)
 
-    # Traceback from max
-    i, j = max_i, max_j
-    a1, a2 = [], []
-    matches = 0
-    while i > 0 and j > 0 and bt[i][j] is not None:
-        move = bt[i][j]
-        if move == 'D':
-            a1.append(s1[i - 1])
-            a2.append(s2[j - 1])
-            if s1[i - 1] == s2[j - 1]:
-                matches += 1
+    # Proper local traceback (stop at 0)
+    align1, align2 = "", ""
+    i, j = max_pos
+
+    while i > 0 and j > 0 and M[i][j] != 0:
+        direction = trace[i][j]
+
+        if direction == 'D':
+            align1 = s1[i-1] + align1
+            align2 = s2[j-1] + align2
             i -= 1
             j -= 1
-        elif move == 'U':
-            a1.append(s1[i - 1])
-            a2.append('-')
+        elif direction == 'U':
+            align1 = s1[i-1] + align1
+            align2 = '-' + align2
             i -= 1
-        else:
-            a1.append('-')
-            a2.append(s2[j - 1])
+        elif direction == 'L':
+            align1 = '-' + align1
+            align2 = s2[j-1] + align2
             j -= 1
 
-    aln1 = ''.join(reversed(a1))
-    aln2 = ''.join(reversed(a2))
-    aln_len = len(aln1)
-    identity = matches / aln_len * 100 if aln_len > 0 else 0.0
+    matches, align_len, identity = _calculate_identity(align1, align2)
 
     return {
-        'score': max_score,
-        'alignment1': aln1,
-        'alignment2': aln2,
-        'matches': matches,
-        'alignment_length': aln_len,
-        'identity_percent': identity,
+        "score": max_score,
+        "alignment1": align1,
+        "alignment2": align2,
+        "matches": matches,
+        "alignment_length": align_len,
+        "identity_percent": identity
     }
-
