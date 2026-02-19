@@ -5,8 +5,8 @@
 import argparse
 import os
 import sys
-from aligner.algorithms import needleman_wunsch, smith_waterman
-from aligner.dotplot import save_dotplot
+from aligner.algorithms import needleman_wunsch_affine, smith_waterman_affine
+from aligner.heatmap import save_plot
 from aligner.io import parse_fasta
 
 
@@ -30,6 +30,12 @@ def load_sequence(file_path):
 
     # FASTA content -> parse first record
     if content.startswith('>'):
+        # If we read from a file path, prefer the dedicated parser in `aligner.io`
+        # (this also ensures the `parse_fasta` import is used so linters/Pylance
+        # can resolve the symbol). If reading from stdin, parse the content.
+        if file_path != '-':
+            return parse_fasta(file_path)
+
         seqs = []
         current = []
         for line in content.splitlines():
@@ -132,16 +138,16 @@ Examples:
 
     # Run alignment algorithm
     if args.algorithm == 'needleman-wunsch':
-        res = needleman_wunsch(seq1, seq2)
+        res = needleman_wunsch_affine(seq1, seq2)
     else:
-        res = smith_waterman(seq1, seq2)
+        res = smith_waterman_affine(seq1, seq2)
 
     # Write results
     out_align = os.path.join(args.outdir, 'alignment.txt')
     write_alignment(out_align, res, seq1, seq2, args.algorithm)
 
-    out_dot = os.path.join(args.outdir, 'dotplot.png')
-    save_dotplot(seq1, seq2, out_dot)
+    out_dot = os.path.join(args.outdir, 'heatmap.png')
+    save_plot(seq1, seq2, out_dot)
 
     print('Wrote:', out_align)
     print('Wrote:', out_dot)
