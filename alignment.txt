@@ -1,7 +1,0 @@
-Algorithm: needleman-wunsch
-Score: 6
-Matches: 17 / 28
-Identity: 60.71%
-
-ATGCGAG--AGGCGCGAGCGACA-GAAA
-AT-CGAGCTA-GC-TGA-TGTCATTAAA
